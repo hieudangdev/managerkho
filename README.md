@@ -64,3 +64,11 @@ là quá trình cài đặt thành công. Tài khoản mặc định:
 
 -   Tên đăng nhập: `admin`
 -   Mật khẩu: `admin`
+
+### 6. Cài đặt link storage
+
+-   Chạy lệnh sau để cài đặt tài khoản admin:
+
+```bash
+  php artisan storage:link
+```
