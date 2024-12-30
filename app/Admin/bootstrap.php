@@ -31,6 +31,7 @@ Admin::js('/vendor/file-manager/js/file-manager.js');
 use Encore\LargeFileUpload\LargeFileField;
 use Encore\Admin\Form;
 
+
 Form::extend('largefile', LargeFileField::class);
 
 $menus = [
@@ -42,6 +43,7 @@ $menus = [
     ['title' => 'BackLink', 'icon' => 'fa-bullhorn', 'uri' => 'campaigns'],
     ['title' => 'Movies', 'icon' => 'fa-video-camera', 'uri' => 'movies'],
     ['title' => 'Categories', 'icon' => 'fa-list', 'uri' => 'categories'],
+    ['title' => 'Netlink', 'icon' => 'fa-list', 'uri' => 'netlink'],
 ];
 
 foreach ($menus as $menu) {

@@ -23,4 +23,5 @@ Route::group([
     $router->resource('movies', MoviesController::class);
     $router->resource('categories', CategoryController::class);
     $router->resource('episodes', EpisodeController::class);
+    $router->resource('netlink', NetlinkController::class);
 });
