@@ -82,10 +82,10 @@ class MoviesController extends AdminController
         $show->field('tags', 'Tags');
         $show->field('quality', 'Quality');
         $show->episodes('Episodes', function ($episode) {
-            $episode->resource('/kho8k/episodes');
+            $episode->resource('#');
             $episode->title('Title');
             $episode->video_url('Video URL')->display(function ($videoUrl) {
-                return '<a href="' . url('storage/' . $videoUrl) . '" target="_blank">Xem Video</a>';
+                return '<a href="' .  $videoUrl . '" target="_blank">Xem Video</a>';
             });
         });
         $show->field('hls_link', 'HLS Link');
@@ -111,42 +111,50 @@ class MoviesController extends AdminController
                 \App\Models\Category::all()->pluck('name', 'id')
             );
             $form->select('quality', 'Quality')->options([
-                '360p' => '360p',
-                '480p' => '480p',
-                '720p' => '720p',
-                '1080p' => '1080p',
-                '2k' => '2k',
                 '4k' => '4k',
+                '2k' => '2k',
+                '1080p' => '1080p',
+                '720p' => '720p',
+                '480p' => '480p',
+                '360p' => '360p',
             ]);
             $form->file('thump', 'Thumbnail');
             $form->image('poster', 'Poster');
             $form->text('country', 'Quốc gia');
             $form->text('actors', 'Diễn viên');
-            $form->number('year', 'Năm');
-            $form->largefile('video_path', 'Video Url');
-            $form->text('hls_link', 'HLS Link');
-            $form->text('video_path', 'Video URL')->help('Chọn file mp4 hoặc Dán link m3u8 vào đây !!!');
-            $form->html('<button  type="button" class="btn btn-primary"  id="open-file" >Select Video</button>');
+            $form->select('year', 'Năm')->options([
+                '2025' => '2025',
+                '2024' => '2024',
+                '2023' => '2023',
+                '2022' => '2022',
+                '2021' => '2021',
+                '2020' => '2020',
+                '2019' => '2019',
+                '2018' => '2018',
+                '2017' => '2017',
+                '2016' => '2016',
+                '2015' => '2015',
+            ]);
+
+
 
             // Nút Tạo HLS
-            $form->html('<button type="button" class="btn btn-success" id="generate-hls">Tạo HLS</button>
-                <span id="loading-spinner" style="display:none; margin-left:10px;">
-                loadding
-                </span>');
+
         });
 
         $form->tab('Tập phim', function ($form) {
             $form->hasMany('episodes', 'Episodes', function (Form\NestedForm $form) {
                 $form->text('title', 'Title')->required();
                 $form->number('episode_number', 'Episode Number')->required();
-                $form->file('video_url', 'Video')
-                    ->rules('nullable|file|mimes:mp4,avi,mov') // Cho phép nullable nếu không tải video mới
-                    ->help('If no video is selected, the previous video will be kept.');
+                $form->largefile('video_link', 'Video Url');
+                $form->text('video_url', 'HLS Link')->required();
+                $form->html('<button type="button"  class="btn btn-primary generate-hls">Generate HLS</button>');
+
             });
         });
 
+            Admin::script($this->hlsScript());
 
-        Admin::script($this->ajaxScript());
         Admin::script($this->generateTagsScript());
 
         // Tạo slug từ title trước khi lưu
@@ -192,23 +200,54 @@ class MoviesController extends AdminController
         });
         SCRIPT;
     }
+ protected function hlsScript()
+    {
+        return <<<SCRIPT
+            $(document).on('click', '.generate-hls', function() {
+                const parentForm = $(this).closest('.has-many-episodes-form');
 
+                const videoLink = parentForm.find('input[name$="[video_link]"]').val();
+
+                    if (videoLink) {
+                        const updatedVideoLink = videoLink.replace(/_/g, '/');
+                        const videoPath= '/storage/uploads/'+updatedVideoLink;
+                        $.ajax({
+                                url: '/api/movies/create-hls',
+                                type: 'POST',
+                                data: {
+                                    _token: LA.token, // Token CSRF
+                                    video: videoPath
+                                },
+                                success: function (response) {
+                                    if (response.status === 'success') {
+                                        // Điền link HLS vào input
+                                        parentForm.find('#video_url').val(response.hls_link);
+                                    } else {
+                                        alert('Lỗi: ' + response.message);
+                                    }
+                                },
+                                error: function () {
+                                    alert('Đã xảy ra lỗi khi gửi yêu cầu.');
+                                },
+                                complete: function () {
+                                // Ẩn spinner khi kết thúc
+                                // document.getElementById('loading-spinner').style.display = 'none';
+                            }
+                        });
+                    } else {
+                        alert('Vui lòng nhập Video Url trước khi tạo HLS.');
+                    }
+    });
+    SCRIPT;
+    }
     protected function ajaxScript()
     {
         return <<<SCRIPT
-            // Mở File Manager
-            document.getElementById('open-file').addEventListener('click', (event) => {
-                event.preventDefault();
-
-                window.open('/file-manager/fm-button', 'fm', 'width=1400,height=800');
-            });
-
-            // Nhận đường dẫn từ File Manager
-            window.fmSetLink = function(fileUrl) {
-                document.querySelector('input[name="video_path"]').value = fileUrl;
-            }
-                // Xử lý khi nhấn nút Tạo HLS
+             $('#generate-hls').on('click', function() {
+        console.log('Anh yêu đã click vào nút #generate-hls!');
+    });
             document.getElementById('generate-hls').addEventListener('click', function () {
+                console.log('Tạo HLS');
                 let videoPath = document.querySelector('input[name="video_path"]').value;
                 if (!videoPath) {
                     alert('Vui lòng chọn video trước khi tạo HLS.');
@@ -247,6 +286,7 @@ class MoviesController extends AdminController
     public function createHlsFromAjax()
     {
         $videoPath = request('video'); // Lấy đường dẫn từ input video
+
         // Nếu là file .m3u8, xử lý bằng hàm copyM3U8ToLocal
         if (str_ends_with($videoPath, '.m3u8')) {
             $hlsLink = $this->copyM3U8ToLocal($videoPath);
@@ -265,8 +305,9 @@ class MoviesController extends AdminController
         }
 
         // Chuyển đổi URL thành đường dẫn tuyệt đối trên hệ thống
-        // $videoPath = public_path(str_replace('/storage', 'storage', $videoPath));
-        $videoPath = str_replace(url('/storage'), storage_path('app/public'), $videoPath);
+        $videoPath = public_path(str_replace('/storage', 'storage', $videoPath));
+        // $videoPath = str_replace(url('/storage'), storage_path('app/public'), $videoPath);
+
         // Kiểm tra đường dẫn hợp lệ và video có tồn tại không
         if (!$videoPath || !file_exists($videoPath)) {
             return response()->json([
@@ -301,7 +342,7 @@ class MoviesController extends AdminController
 
         if (is_dir($hlsDir) && file_exists($hlsDir . '/index.m3u8')) {
             // Nếu đã có file HLS, trả về link HLS hiện tại
-            return asset('storage/videos/hls/' . pathinfo($videoPath, PATHINFO_FILENAME) . '/index.m3u8');
+            return asset( pathinfo($videoPath, PATHINFO_FILENAME) . '/index.m3u8');
         }
 
         // Tạo thư mục HLS nếu chưa tồn tại

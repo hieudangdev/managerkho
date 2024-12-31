@@ -19,10 +19,7 @@ class CreateVideosTable extends Migration
             $table->string('slug')->unique()->nullable();
             $table->string('tags')->nullable();
             $table->string('quality')->nullable();
-
-            $table->string('video_path'); // Đường dẫn video MP4
             $table->string('hls_link')->nullable(); // Đường dẫn HLS m3u8
-
             $table->string('thump')->nullable(); // Thumbnail
             $table->string('poster')->nullable(); // Poster
             $table->string('country')->nullable(); // Quốc gia

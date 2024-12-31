@@ -1,4 +1,4 @@
-/* 
+/*
     aetherupload-core.js
 */
 

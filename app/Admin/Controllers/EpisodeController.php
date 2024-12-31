@@ -65,14 +65,15 @@ class EpisodeController extends AdminController
         $form->file('video_url', 'Video')
             ->help('If no video is selected, the previous video will be kept.')
             ->rules('required_if:video_url,==,null'); // Tùy chỉnh rule nếu cần
-        // Giữ lại video_url cũ nếu không thay đổi  
+        // Giữ lại video_url cũ nếu không thay đổi
         if ($form->model()->exists) {
             $form->ignore(['video_url']);
         }
-        
+
         $form->saved(function (Form $form) {
             // Lấy movie_id từ form và chuyển hướng về trang show của movie
             $movieId = $form->model()->movie_id;
+
             admin_toastr('Episode created successfully!');
             return redirect()->to('kho8k/movies/' . $movieId);
         });

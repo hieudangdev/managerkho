@@ -407,8 +407,21 @@ return [
 
             // Select a local disk that you configured in `config/filesystem.php`
             'disk' => 'public',
-            'allowed_ext' => 'jpg,jpeg,png,pdf,doc,docx,zip,mp4,avi,mkv'
+            'allowed_ext' => 'webp,jpg,jpeg,png,pdf,doc,docx,zip,mp4,avi,mkv'
         ],
+        'data-table' => [
+            // If the value is set to false, this extension will be disabled
+            'enable' => true,
+            // global options
+            'options' => [
+                 'paging' => false,
+                 'lengthChange' => false,
+                 'searching' => false,
+                 'ordering' => false,
+                 'info' => false,
+                 'language' => 'English', // or Chinese
+            ]
+            ],
         'material-ui' => [
         // If the value is set to false, this extension will be disabled
         'enable' => true

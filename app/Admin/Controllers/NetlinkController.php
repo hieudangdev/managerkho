@@ -68,18 +68,29 @@ class NetlinkController extends AdminController
             return "No domains available";
         });
 
+
+
         // Hiển thị hành động: Run TVC
         $grid->column('actions')->display(function () {
-            // URL cho hành động Run TVC
-            $runUrl = route('netlink.run', ['id' => $this->id]);
+            // URL cho hai hành động Run và Stop
+            $runUrl = route('netlink.run', ['id' => $this->id, 'active' => 'true']);
 
-            // HTML cho nút Run
-            $runButton = "<a href=\"{$runUrl}\" class=\"btn btn-success\">Run</a>";
+            // HTML cho hai nút
+            $runButton = "<a href=\"{$runUrl}\" class=\"btn btn-success\">Run TVC</a>";
 
-            // Trả về nút Run TVC
+            // Nếu trạng thái không phải 'active', chỉ hiển thị nút Run
             return $runButton;
         });
 
+        $grid->column('stop_actions')->display(function () {
+            // URL cho hai hành động Run và Stop
+            $stopUrl = route('netlink.run', ['id' => $this->id, 'active' => 'false']);
+
+            // HTML cho hai nút
+            $stopButton = "<a href=\"{$stopUrl}\" class=\"btn btn-danger\">Stop TVC</a>";
+
+            return $stopButton;
+        });
         return $grid;
     }
 
@@ -125,10 +136,10 @@ class NetlinkController extends AdminController
     {
         $form = new Form(new Netlink());
 
-        // Trường redirect_url để nhập URL phân tách bằng dấu phẩy
-        $form->text('redirect_url', __('Redirect URL'))
+        // Trường redirect_url dạng textarea
+        $form->textarea('redirect_url', __('Redirect URL'))
             ->required()
-            ->help('Nhập các URL phân tách bằng dấu phẩy. Ví dụ: https://example1.com, https://example2.com');
+            ->help('Nhập các URL, mỗi URL cách nhau bằng dấu phẩy hoặc xuống dòng.');
 
         // Các trường còn lại
         $form->number('min', __('Min Value'))->min(0)->default(0);
@@ -138,19 +149,13 @@ class NetlinkController extends AdminController
         $form->checkbox('domains', __('Domains'))->options(Domain::all()->pluck('domain_url', 'id'))
             ->rules('required');
 
-        // Sử dụng phương thức saving để xử lý trước khi lưu
-        $form->saving(function (Form $form) {
-            // Xử lý redirect_url: chuyển chuỗi URL phân tách bằng dấu phẩy thành mảng
-            if ($form->redirect_url) {
-                $form->redirect_url = array_map('trim', explode(',', $form->redirect_url));
-            }
-        });
-
         return $form;
     }
 
 
-    public function run($id)
+
+
+    public function run($id, $active)
     {
         $netlink = Netlink::findOrFail($id);
 
@@ -167,15 +172,16 @@ class NetlinkController extends AdminController
         $max = $netlink->max;
 
         $errorDomains = []; // Mảng lưu danh sách các domain bị lỗi
-
+        $activeReq = $active == 'true' ? true : false;
         foreach ($domains as $domain) {
             $apiUrl = rtrim($domain->domain_url, '/') . '/api/netlink';
             $payload = [
                 'url' => $redirectUrls,  // Truyền mảng redirect_url
                 'min' => $min,
                 'max' => $max,
+                'active' => $activeReq
             ];
-
+            dd($payload);
             try {
                 $response = Http::post($apiUrl, $payload);
 
@@ -188,6 +194,7 @@ class NetlinkController extends AdminController
                 $errorDomains[] = $domain->domain_url; // Thêm domain vào mảng lỗi
             }
         }
+
         return redirect()->back();
     }
 }

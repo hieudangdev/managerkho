@@ -1,5 +1,6 @@
 <?php
 
+use App\Admin\Controllers\ApiController;
 use App\Admin\Controllers\MoviesController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
@@ -43,4 +44,9 @@ Route::post('/chunk-upload', function (Request $request) {
     }
 
     return response()->json(['error' => 'Không tìm thấy file'], 400);
+});
+Route::prefix('movies')->group(function () {
+    Route::get('/latest', [ApiController::class, 'latestMovies']);
+    Route::get('/search', [ApiController::class, 'searchMovies']);
+    Route::get('/{id}', [ApiController::class, 'movieDetail']);
 });
